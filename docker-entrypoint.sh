@@ -8,21 +8,8 @@ file_url=${FILE_URL}
 # And the file name.
 file_name=$(echo ${file_url} | awk -F '/' '{print $NF}')
 
-# Identify if the file exists.
-wget --spider ${file_url}
-if [[ $? != 0 ]];then 
-    echo -e "\033[41;37m[ ERROR ]\033[0m Exiting! Verify that the download address is correct. use \$FILE_URL"
-    exit 1
-fi
-
 # Declare file path , where should we store data.
 file_path=${FILE_PATH}
-
-# Identify if the dir exists.
-if [[ ! -d ${file_path} ]];then
-    echo -e "\033[41;37m[ ERROR ]\033[0m Exiting! Verify that the destination directory exists and is persisted. use \$FILE_PATH"
-    exit 2
-fi
 
 # Declare other download args , for wget
 download_args=${DOWNLOAD_ARGS}
@@ -32,6 +19,24 @@ extract_file=${EXTRACT_FILE:-true}
 
 # Declares where to store lock file
 lock_path=${LOCK_PATH}
+
+# Enter debug mode
+[[ $1 == "debug" ]] && exec /bin/bash
+
+# Identify if the file exists.
+wget --spider ${file_url}
+if [[ $? != 0 ]];then 
+    echo -e "\033[41;37m[ ERROR ]\033[0m Exiting! Verify that the download address is correct. use \$FILE_URL"
+    exit 1
+fi
+
+# Identify if the dir exists.
+if [[ ! -d ${file_path} ]];then
+    echo -e "\033[41;37m[ ERROR ]\033[0m Exiting! Verify that the destination directory exists and is persisted. use \$FILE_PATH"
+    exit 2
+fi
+
+# Identify if the lock path exists.
 if [[ x${lock_path} = x ]];then
    echo -e "\033[41;37m[ ERROR ]\033[0m You must define the path to store lock file. use \$LOCK_PATH"
    exit 3
@@ -81,7 +86,7 @@ Process_tgz(){
 
 # Generate lock file
 Generate_lock_file(){
-    mount | grep ${lock_path} > /dev/null 2&>1
+    mount | grep ${lock_path} > /dev/null
     if [[ $? != 0 ]];then
         echo -e "\033[43;37m[ WARN ]\033[0m The lock path in which the lock file must be persisted! Check \$LOCK_PATH"
     fi
