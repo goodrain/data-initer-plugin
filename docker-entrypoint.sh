@@ -45,31 +45,47 @@ fi
 
 # Processing zip file 
 Process_zip(){
+    echo -e "\033[42;37m[ INFO ]\033[0m Downloading initial data from ${FILE_URL}"
     wget -c -P ${file_path} ${download_args} ${file_url}
     if [[ $? != 0 ]];then
         echo -e "\033[41;37m[ ERROR ]\033[0m The download process has terminated unexpectedly. Please try restarting..."
         exit 5
+    else
+        echo -e "\033[42;37m[ INFO ]\033[0m The initialization file has been downloaded"
     fi
 
     if [[ ${extract_file} == true ]];then
+        echo -e "\033[42;37m[ INFO ]\033[0m Extracting the initialization file"
         unzip ${file_path}/${file_name} -d ${file_path}
         rm -rf ${file_path}/${file_name}
     fi
-    touch ${lock_path}/.datainited
 }
 
 # Processing tgz file 
 Process_tgz(){
+    echo -e "\033[42;37m[ INFO ]\033[0m Downloading initialization file from ${FILE_URL}"
     wget -c -P ${file_path} ${download_args} ${file_url} 
     if [[ $? != 0 ]];then
         echo -e "\033[41;37m[ ERROR ]\033[0m The download process has terminated unexpectedly. Please try restarting..."
         exit 5
+    else
+        echo -e "\033[42;37m[ INFO ]\033[0m The initialization file has been downloaded"
     fi
 
     if [[ ${extract_file} == true ]];then
-        tar xf ${file_path}/${file_name} -C ${file_path}
+        echo -e "\033[42;37m[ INFO ]\033[0m Extracting the initialization file"
+        tar xvf ${file_path}/${file_name} -C ${file_path}
         rm -rf ${file_path}/${file_name}
     fi
+}
+
+# Generate lock file
+Generate_lock_file(){
+    mount | grep ${lock_path} > /dev/null 2&>1
+    if [[ $? != 0 ]];then
+        echo -e "\033[43;37m[ WARN ]\033[0m The lock path in which the lock file must be persisted! Check \$LOCK_PATH"
+    fi
+    echo -e "\033[42;37m[ INFO ]\033[0m Generating the lock file ${lock_path}/.datainited"
     touch ${lock_path}/.datainited
 }
 
@@ -77,11 +93,11 @@ Process_tgz(){
 
 if [[ ! -f ${lock_path}/.datainited ]];then
     case ${file_name} in 
-        *.zip) Process_zip
+        *.zip) Process_zip && Generate_lock_file
         ;;
-        *) Process_tgz
+        *) Process_tgz && Generate_lock_file
         ;;
     esac
 else
-    echo -e "\033[42;37m[ INFO ]\033[0m The data has already been initialized, this initialization is skipped..."
+    echo -e "\033[42;37m[ INFO ]\033[0m The data has already been initialized, skiping..."
 fi

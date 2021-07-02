@@ -7,26 +7,17 @@
 
 其基本的原理，是利用 Kubernetes 的 [init容器](https://kubernetes.io/zh/docs/concepts/workloads/pods/init-containers/) 实现的。插件所在的容器会在业务容器启动之前运行直至完成，通过定义好的下载、解压逻辑，将实现准备好的初始化数据压缩包（仅支持 zip 、tgz、 tar.gz 三种格式）解压到目标目录中去，下载过程支持断点续传。当然，我们要事先将目标目录进行持久化的设置。
 
-下面是一个运行示例，`data-initer-plugin` 是使用当前代码构建出来的镜像，当前示例仅表示其工作原理。正常使用时，请参见后文中 **如何使用插件** 一节。
-
-
-```bash
-docker run -ti  \
--e FILE_URL=https://goodrain-delivery.oss-cn-hangzhou.aliyuncs.com/somedir/mydata.zip \
--e FILE_PATH=/data \
--e DEBUG=1 \
--v $(pwd):/data data-initer-plugin
-```
-
-插件支持的环境变量配置如下：
+插件需要的环境变量配置如下：
 
 |ENV|VALUE|Tip|
 |:---:|:---:|:---:|
-|FILE_URL|url|Where to download|
-|FILE_PATH|path to dir|Where file to save|
-|EXTRACT_FILE|true/false|Auto extract file by default|
-|DOWNLOAD_ARGS| -X ,--xx |Other download args of Wget|
-|DEBUG|anything true|Debug|
+|FILE_URL|url|初始化文件下载地址|
+|FILE_PATH|path to dir|单个目录初始化时，指定持久化目录地址；多目录初始化时，指定 `/`|
+|EXTRACT_FILE|true/false|默认自动对初始化文件进行解压|
+|DOWNLOAD_ARGS| -X ,--xx |适用于 `wget` 的额外命令行参数|
+|LOCK_PATH|path to dir|锁文件保存路径，指定任意存在的持久化目录|
+|DEBUG|anything true|开启 Debug 日志|
+
 
 
 
@@ -38,13 +29,13 @@ Rainbond 的插件机制中，有对 init 容器的天然支持 —— 初始化
 
 #### 1. 新建插件
 
-![image-20210420153912325](https://tva1.sinaimg.cn/large/008eGmZEly1gpq92claspj31vo0u0wlu.jpg)
+![image-20210420153912325](https://static.goodrain.com/docs/5.3/practices/app-dev/data-initialization/data-initialization-1.jpeg)
 
 
 
 #### 2. 填写构建源信息
 
-![image-20210420174918386](https://tva1.sinaimg.cn/large/008eGmZEly1gpqctnpfjnj322g0tqn0s.jpg)
+![image-20210420174918386](https://static.goodrain.com/docs/5.3/practices/app-dev/data-initialization/data-initialization-2.jpeg)
 
 关键信息包括：
 
@@ -61,7 +52,7 @@ Rainbond 的插件机制中，有对 init 容器的天然支持 —— 初始化
 
 进入配置组管理处，添加一组配置：
 
-![image-20210420185514757](https://tva1.sinaimg.cn/large/008eGmZEly1gpqeqa4ep8j31zy0u0zox.jpg)
+![image-20210420185514757](https://static.goodrain.com/docs/5.3/practices/app-dev/data-initialization/data-initialization-3.png)
 
 保存配置后，插件就做好了。
 
@@ -79,9 +70,9 @@ Rainbond 的插件机制中，有对 init 容器的天然支持 —— 初始化
 #### 2. 安装并配置插件
 
 - 为服务组件安装已经制作好的 通用数据初始化插件。
-- 查看配置，输入初始化数据包的下载地址，以及目标持久化目录之后，更新配置。
+- 查看配置，输入初始化数据包的下载地址(FILE_URL)、目标持久化目录(FILE_PATH)、锁文件保存目录(LOCK_PATH)之后，更新配置。
 
-![image-20210421092824164](https://tva1.sinaimg.cn/large/008eGmZEly1gpr3ytje26j325s0p6djq.jpg)
+![image-20210421092824164](https://static.goodrain.com/docs/5.3/practices/app-dev/data-initialization/data-initialization-4.png)
 
 - 更新内存，由于初始化类型插件在运行结束后会自动退出，所以大家不用担心占据资源过大的情况。内存值的设定可以尽量放大，以稍微大于持久化数据包的大小为宜。这会加快下载以及解压的速度。
 
@@ -94,7 +85,7 @@ Rainbond 的插件机制中，有对 init 容器的天然支持 —— 初始化
 ```bash
 7b554df4b7bb:Connecting to rainbond-pkg.oss-cn-shanghai.aliyuncs.com (106.14.228.173:443)
 
-7b554df4b7bb:Rainbond-5.2.2-relea   0% |                                |  367k  2:45:46 ETA
+7b554df4b7bb:data.tgz           0% |                                |  367k  2:45:46 ETA
 ```
 
 等待下载解压完成后，服务组件就会进入正常的启动流程中。
@@ -125,8 +116,12 @@ tar cvzf data.tgz /app /data/a /root/.b
 - 安装通用数据初始化插件
 - 填写 FILE_URL ，使用刚才获得的 URL 即可
 - 填写 FILE_PATH ，其值为 `/` 这是最关键的一步
+- 填写 LOCK_PATH ，其值必须为已存在的持久化存储路径
 - 启动组件，即可开始初始化流程
 
+### 关于锁文件
+
+在首次初始化完成后，将会在 LOCK_PATH 下生成一个隐藏文件，即锁文件。后续的重启过程将识别这一锁文件，如存在，则跳过初始化流程。这样做的目的在于避免重复初始化数据。
 
 ### 关于对象存储
 
