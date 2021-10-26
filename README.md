@@ -11,7 +11,7 @@
 
 |ENV|VALUE|Tip|
 |:---:|:---:|:---:|
-|FILE_URL|url|初始化文件下载地址|
+|FILE_URL|url|初始化文件下载地址(请不要在下载地址中包含中文)|
 |FILE_PATH|path to dir|单个目录初始化时，指定持久化目录地址；多目录初始化时，指定 `/`|
 |EXTRACT_FILE|true/false|默认自动对初始化文件进行解压|
 |DOWNLOAD_ARGS| -X ,--xx |适用于 `wget` 的额外命令行参数|
