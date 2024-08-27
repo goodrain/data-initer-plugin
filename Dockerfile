@@ -1,4 +1,4 @@
-FROM ubuntu:20.04
+FROM docker.rainbond.cc/ubuntu:20.04
 
 LABEL MAINTAINER ="guox <guox@goodrain.com>"
 
